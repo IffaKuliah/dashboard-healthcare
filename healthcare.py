@@ -225,7 +225,7 @@ if menu == "Executive Summary":
     total_pasien = len(df_filtered)
     jumlah_laki = len(df_filtered[df_filtered['gender'] == 'Male'])
     jumlah_perempuan = len(df_filtered[df_filtered['gender'] == 'Female'])
-            
+
     str_total = f"{total_pasien:,.0f}".replace(",", ".")
     str_laki = f"{jumlah_laki:,.0f}".replace(",", ".")
     str_perempuan = f"{jumlah_perempuan:,.0f}".replace(",", ".")
@@ -316,6 +316,12 @@ elif menu == "Detail Analisis":
     # MEMBUAT DUA TAB DI HALAMAN 2
     tab_Kinerja, tab_Pasien = st.tabs(["Kinerja Cabang", "Pasien"])
     
+    # Membuat filter khusus cabang untuk Tab Pasien dan Kuadran
+    if pilihan_cabang != "Semua Cabang":
+        df_cabang = df_filtered[df_filtered['branch'] == pilihan_cabang].copy()
+    else:
+        df_cabang = df_filtered.copy()
+
     # ---------------------------------------------------------
     # TAB 1: KINERJA CABANG & KUADRAN IPA
     # ---------------------------------------------------------
@@ -330,16 +336,26 @@ elif menu == "Detail Analisis":
             df_rank = df_rank.rename(columns={'nps': 'Rataan NPS'})
             # Diurutkan ascending agar nilai terendah di bawah dan tertinggi di atas grafik batang
             df_rank = df_rank.sort_values('Rataan NPS', ascending=True).reset_index(drop=True) 
+            
+            if pilihan_cabang != "Semua Cabang":
+                # Cabang terpilih warna navy, sisanya abu-abu pudar
+                warna_grafik = ['#0F4C75' if b == pilihan_cabang else '#CBD5E1' for b in df_rank['branch']]
+            else:
+                # Semua cabang warna navy
+                warna_grafik = ['#0F4C75'] * len(df_rank)
 
             fig_rank = px.bar(
-                df_rank, x='Rataan NPS', y='branch', orientation='h', text_auto='.2f',
-                color='Rataan NPS', color_continuous_scale='Blues' 
+                df_rank, x='Rataan NPS', y='branch', orientation='h', text_auto='.2f', color_continuous_scale='Blues' 
             )
+
+            fig_rank.update_traces(marker_color=warna_grafik, textposition='inside', textfont_size=13)
+
             fig_rank.update_layout(
                 title=dict(text="<b>Peringkat Cabang (Berdasarkan NPS)</b>", font=dict(size=16, color='#1E293B')),
                 margin={"r": 20, "t": 50, "l": 0, "b": 20}, xaxis_title="", yaxis_title="",
                 coloraxis_showscale=False, paper_bgcolor='#E2E8F0', plot_bgcolor='#E2E8F0', height=500
             )
+
             fig_rank.update_traces(textposition='inside', textfont_size=13)
 
             # Fitur klik (on_select) diaktifkan
@@ -356,8 +372,11 @@ elif menu == "Detail Analisis":
                 df_kuadran = df_filtered[df_filtered['branch'] == selected_branch_kuadran]
                 judul_kuadran = f"<b>Matriks Kepuasan - Cabang {selected_branch_kuadran}</b>"
             else:
-                df_kuadran = df_filtered.copy()
-                judul_kuadran = "<b>Matriks Kepuasan - Seluruh Cabang</b>"
+                df_kuadran = df_cabang.copy() 
+                if pilihan_cabang != "Semua Cabang":
+                    judul_kuadran = f"<b>Matriks Kepuasan - Cabang {pilihan_cabang}</b>"
+                else:
+                    judul_kuadran = "<b>Matriks Kepuasan - Seluruh Cabang</b>"
 
             # 2. Kalkulasi Data Kuadran Berdasarkan Data yang Tersaring
             mean_scores, correlations = [], []
@@ -462,9 +481,9 @@ elif menu == "Detail Analisis":
         st.markdown("<h4 style='color: #0F4C75; margin-top: 0px;'>Profil Demografi & Tren Kunjungan</h4>", unsafe_allow_html=True)
         
         # 1. KARTU TOTAL PASIEN
-        total_pasien_t2 = len(df_filtered)
-        jumlah_laki_t2 = len(df_filtered[df_filtered['gender'] == 'Male'])
-        jumlah_perempuan_t2 = len(df_filtered[df_filtered['gender'] == 'Female'])
+        total_pasien_t2 = len(df_cabang)
+        jumlah_laki_t2 = len(df_cabang[df_cabang['gender'] == 'Male'])
+        jumlah_perempuan_t2 = len(df_cabang[df_cabang['gender'] == 'Female'])
                 
         str_total_t2 = f"{total_pasien_t2:,.0f}".replace(",", ".")
         str_laki_t2 = f"{jumlah_laki_t2:,.0f}".replace(",", ".")
@@ -494,7 +513,7 @@ elif menu == "Detail Analisis":
         
         # 2. AREA KIRI (Distribusi Umur)
         with col_p_left:
-            kolom_umur = 'age' if 'age' in df_filtered.columns else 'umur' if 'umur' in df_filtered.columns else None
+            kolom_umur = 'age' if 'age' in df_cabang.columns else 'umur' if 'umur' in df_filtered.columns else None
             
             if kolom_umur:
                 # 1. Mendefinisikan batas rentang umur dan labelnya
@@ -503,7 +522,7 @@ elif menu == "Detail Analisis":
                 label_umur = ['<18', '18-25', '26-35', '36-45', '46-55', '>55']
                 
                 # 2. Mengelompokkan umur ke dalam kategori
-                df_age = df_filtered.copy()
+                df_age = df_cabang.copy()
                 df_age['Kelompok Umur'] = pd.cut(df_age[kolom_umur], bins=batas_umur, labels=label_umur, right=False)
                 
                 # 3. Menghitung jumlah pasien per kelompok umur
@@ -528,11 +547,11 @@ elif menu == "Detail Analisis":
         # 3. AREA KANAN (Tren Kunjungan)
         with col_p_right:
             if pilihan_periode == "Semua Periode":
-                df_visit = df_filtered.groupby('bulan').size().reset_index(name='Jumlah Kunjungan')
+                df_visit = df_cabang.groupby('bulan').size().reset_index(name='Jumlah Kunjungan')
                 x_axis_col = 'bulan'
                 judul_visit = "<b>Tren Kedatangan Pasien Bulanan</b>"
             else:
-                df_visit = df_filtered.groupby('tanggal').size().reset_index(name='Jumlah Kunjungan')
+                df_visit = df_cabang.groupby('tanggal').size().reset_index(name='Jumlah Kunjungan')
                 x_axis_col = 'tanggal'
                 judul_visit = f"<b>Kedatangan Pasien Harian ({pilihan_periode})</b>"
 
@@ -556,9 +575,9 @@ elif menu == "Detail Analisis":
         # 4. AREA BAWAH (Proporsi Area Perbaikan Berdasarkan Gender)
         # =========================================================
                 
-        if 'improvement_feedback' in df_filtered.columns and 'gender' in df_filtered.columns:
+        if 'improvement_feedback' in df_cabang.columns and 'gender' in df_cabang.columns:
             # Menyaring dan membersihkan data feedback
-            df_gen_fb = df_filtered.dropna(subset=['improvement_feedback', 'gender']).copy()
+            df_gen_fb = df_cabang.dropna(subset=['improvement_feedback', 'gender']).copy()
             df_gen_fb['feedback_clean'] = df_gen_fb['improvement_feedback'].astype(str).str.strip().str.lower()
             df_gen_fb = df_gen_fb[(df_gen_fb['feedback_clean'] != 'nan') & (df_gen_fb['feedback_clean'] != 'service good')]
 
