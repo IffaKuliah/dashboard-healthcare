@@ -47,7 +47,7 @@ st.markdown(
 # =========================================================
 @st.cache_data
 def load_data():
-    file_path = r"D:\Semester 6\DC\Deka\health care dataset.csv"
+    file_path = "health care dataset.csv"
     df = pd.read_csv(file_path, sep=None, engine='python')
 
     df.columns = [c.strip().lower().replace(" ", "_") for c in df.columns]
