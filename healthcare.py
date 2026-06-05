@@ -314,7 +314,7 @@ elif menu == "Detail Analisis":
     st.markdown(f"<h3 style='color: #0F4C75;'>Detail Analisis - {teks_waktu}</h3>", unsafe_allow_html = True)
 
     # MEMBUAT DUA TAB DI HALAMAN 2
-    tab_Kinerja, tab_Pasien = st.tabs(["Kinerja Cabang", "Demografi Pasien"])
+    tab_Kinerja, tab_Pasien = st.tabs(["Kinerja Cabang", "Pasien"])
     
     # ---------------------------------------------------------
     # TAB 1: KINERJA CABANG & KUADRAN IPA
